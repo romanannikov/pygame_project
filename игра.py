@@ -1,20 +1,21 @@
 import random
 import pygame
+import os
 
 pygame.init()
 size = w, h = 520, 570
 screen = pygame.display.set_mode(size)
-clock = pygame.time.Clock()
 sp_z = [x for x in range(1, 26)]
 random.shuffle(sp_z)
 cell_size = 100
 left = 10
 top = 60
 font = pygame.font.Font(None, 36)
+textrules=font.render('ПРАВИЛА', 1, (255, 255, 255))
 textchoise = font.render('ВЫБЕРИТЕ СЛОЖНОСТЬ', 1, (255, 255, 255))
 texteasy = font.render('EASY', 1, (34, 177, 76))
 textmedium = font.render('MEDIUM', 1, (255, 242, 0))
-texthight = font.render('HIGHT', 1, (237, 28, 36))
+texthight = font.render('HARD', 1, (237, 28, 36))
 textnightmare = font.render('NIGHTMARE', 1, (255, 0, 0))
 textwin = font.render('YOU WIN', 1, (34, 177, 76))
 textwin_x = w // 2 - textwin.get_width() // 2
@@ -23,6 +24,9 @@ textlose = font.render('YOU LOSE', 1, (237, 28, 36))
 textlose_x = w // 2 - textlose.get_width() // 2
 textlose_y = h // 2 - textlose.get_height() // 2
 runstart = True
+fl_sl=False
+count_errors = 0
+ce2=0
 
 
 class Board:
@@ -76,6 +80,7 @@ class Board:
 
 
 while runstart:
+    screen.fill((0, 0, 0))
     count_time = 0
     board = Board(5, 5)
     kletka = None
@@ -85,16 +90,21 @@ while runstart:
     im2 = None
     x = 0
     count = 1
-    count_errors = 0
     y = 0
     imr = pygame.image.load('restart.png')
     running = True
     runwin = False
     runlose = False
     flf = False
-    run_sl = False
+    run_sl = True
     time_lose = 0
+    count_errors=0
+    if fl_sl:
+        run_sl=False
+        time_lose=20
+        count_errors=ce2
     while run_sl:
+        screen.blit(textrules, (10, 10))        
         screen.blit(textchoise, (
         w // 2 - textchoise.get_width() // 2, h // 2 - textchoise.get_height() // 2 - 100))
         screen.blit(texteasy,
@@ -113,9 +123,22 @@ while runstart:
                 run_sl = False
             if event.type == pygame.MOUSEBUTTONDOWN:
                 m_pos = event.pos
-                if h - texteasy.get_height() > m_pos[1] < texteasy.get_height():
+                if h // 2 - texteasy.get_height() // 2 - 50 < m_pos[1] < h // 2 - texteasy.get_height() // 2:
                     time_lose = 120
-                    print('fdffazg')
+                    run_sl=False
+                elif h // 2 - textmedium.get_height() // 2 < m_pos[1] < h // 2 - textmedium.get_height() // 2 +50:
+                    time_lose = 60
+                    run_sl=False
+                elif h // 2 - texthight.get_height() // 2 +50< m_pos[1] < h // 2 - texthight.get_height() //2 +100  :
+                    time_lose = 30
+                    run_sl=False
+                elif h // 2 - textnightmare.get_height() // 2 +100 < m_pos[1] < h // 2 - textnightmare.get_height() // 2 +150:
+                    time_lose = 20
+                    run_sl=False
+                    fl_sl=True
+                elif 10<m_pos[0]<10+textrules.get_width() and 10<m_pos[1]<10+textrules.get_height():
+                    os.system('start правила.txt')
+    clock = pygame.time.Clock()
     while running:
         count_time += clock.tick()
         screen.fill((0, 0, 0))
@@ -131,9 +154,12 @@ while runstart:
             screen.blit(imh, (460, 10))
         board.render()
         board.start_game()
+        if count_time/1000>time_lose:
+            running=False
+            runlose=True
         if count == 26:
-            running = False
             runwin = True
+            running = False
         if count_errors == 4:
             running = False
             runlose = True
@@ -144,11 +170,12 @@ while runstart:
             if event.type == pygame.MOUSEBUTTONDOWN:
                 m_pos = event.pos
                 kletka = board.get_cell(m_pos)
-                if matr[kletka[1]][kletka[0]] == count:
-                    fl = True
-                else:
-                    flf = True
-                m_pos = event.pos
+                if m_pos[1]>50:
+                    if matr[kletka[1]][kletka[0]] == count:
+                        fl = True
+                    elif m_pos[1]>50:
+                        flf = True
+                    m_pos = event.pos
         if fl:
             imw = pygame.image.load(str(matr[kletka[1]][kletka[0]]) + '.png')
             screen.blit(imw, (kletka[0] * cell_size + left, kletka[1] * cell_size + top))
@@ -163,7 +190,12 @@ while runstart:
         text_time = font.render(str(count_time / 1000), 1, (255, 255, 255))
         screen.blit(text_time, (10, 10))
         pygame.display.flip()
+    if fl_sl:
+        runwin=False
+        ce2=count_errors
+
     while runwin:
+        count_time=0
         screen.fill((0, 0, 0))
         screen.blit(textwin, (textwin_x, textwin_y))
         screen.blit(text_time, (
@@ -178,12 +210,12 @@ while runstart:
                 m_poswin = i.pos
                 if board.get_restart(m_poswin):
                     runwin = False
+                    run_sl=True
 
     while runlose:
         screen.fill((0, 0, 0))
+        count_time=0
         screen.blit(textlose, (textlose_x, textlose_y))
-        screen.blit(text_time, (
-            w // 2 - text_time.get_width() // 2, h // 2 - text_time.get_height() // 2 - 50))
         screen.blit(imr, (220, textlose_y + 50))
         pygame.display.flip()
         for i in pygame.event.get():
@@ -194,5 +226,7 @@ while runstart:
                 m_poslose = i.pos
                 if board.get_restart(m_poslose):
                     runlose = False
+                    run_sl=True
+                    fl_sl=False
 
 pygame.quit()
